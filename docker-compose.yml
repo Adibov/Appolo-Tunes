@@ -9,6 +9,7 @@ services:
       - AWS_ACCESS_KEY_ID
       - AWS_SECRET_KEY_ID
       - AWS_BUCKET_NAME
+      - POSTGRES_PASSWORD
     image: request_handler:latest
     ports:
       - 5000:5000
@@ -20,10 +21,27 @@ services:
       POSTGRES_USER: request_manager
       POSTGRES_PASSWORD: db_password
       POSTGRES_DB: requests_db
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U $POSTGRES_USER -d $POSTGRES_DB -p POSTGRES_PASSWORD" ]
+      interval: 30s
+      retries: 3
     ports:
       - "5432"
     volumes:
       - pg_data:/var/lib/postgresql/data/
+
+  migrate_db:
+    image: postgres:16.1
+    depends_on:
+      db:
+        condition: service_healthy
+    command:
+      - "bash"
+      - "-c"
+      - "./migrate.sh"
+    environment:
+      - POSTGRES_PASSWORD
+
 
 volumes:
   pg_data:
