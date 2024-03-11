@@ -6,3 +6,5 @@ services:
       cache_from:
         - request_handler:latest
     image: request_handler:latest
+    ports:
+      - 5000:5000
