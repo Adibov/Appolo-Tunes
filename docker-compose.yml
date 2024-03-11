@@ -5,6 +5,10 @@ services:
       context: request_handler
       cache_from:
         - request_handler:latest
+    environment:
+      - AWS_ACCESS_KEY_ID
+      - AWS_SECRET_KEY_ID
+      - AWS_BUCKET_NAME
     image: request_handler:latest
     ports:
       - 5000:5000
