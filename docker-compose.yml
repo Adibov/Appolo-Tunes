@@ -1,0 +1,8 @@
+version: '3.8'
+services:
+  request_handler:
+    build:
+      context: request_handler
+      cache_from:
+        - request_handler:latest
+    image: request_handler:latest
