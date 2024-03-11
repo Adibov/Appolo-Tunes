@@ -1,14 +1,17 @@
+import atexit
 import os
 from typing import IO
 
 import boto3
-from flask import Flask, request
+import pika
 import psycopg2
-import atexit
+from flask import Flask, request
+from pika.credentials import PlainCredentials
 
-from request_handler.request_status import RequestStatus
+from .request_status import RequestStatus
 
 app = Flask(__name__)
+
 s3_client = boto3.client('s3',
                          region_name='thr',
                          endpoint_url='https://s3.ir-thr-at1.arvanstorage.ir',
@@ -25,6 +28,15 @@ db_conn = psycopg2.connect(
     port="5432"
 )
 
+# Connect to RabbitMQ server
+rabbit_conn = pika.BlockingConnection(
+    pika.ConnectionParameters(os.getenv('RABBITMQ_HOST', 'rabbitmq'), 5672, 'request_vhost',
+                              credentials=PlainCredentials(username=os.getenv('RABBITMQ_USERNAME'),
+                                                           password=os.getenv('RABBITMQ_PASSWORD'))))
+channel = rabbit_conn.channel()
+queue_name = 'requests'
+channel.queue_declare(queue=queue_name)
+
 
 @app.route('/upload-song', methods=['POST'])
 def upload_song():
@@ -38,6 +50,7 @@ def upload_song():
         return _generate_response(500, 'Failed to save request in the database')
     song_id = f'{email}/{request_id}'
     save_song_in_s3(song.stream, song_id)
+    publish_request_to_rabbitmq(request_id)
     return _generate_response(200, f'Song uploaded successfully: {request_id}')
 
 
@@ -59,6 +72,10 @@ def save_song_in_s3(stream: IO[bytes], song_id: str) -> None:
     s3_client.upload_fileobj(stream, bucket_name, song_id)
 
 
+def publish_request_to_rabbitmq(request_id: int):
+    channel.basic_publish(exchange='', routing_key=queue_name, body=request_id.to_bytes(4, byteorder='big'))
+
+
 def _generate_response(status_code: int, data: any):
     return {
         'status_code': status_code,
@@ -71,6 +88,8 @@ def exit_handler():
     db_conn.commit()
     print('Closing database connection...')
     db_conn.close()
+    rabbit_conn.close()
+    print('RabbitMQ connection closed')
 
 
 atexit.register(exit_handler)
