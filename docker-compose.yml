@@ -12,3 +12,18 @@ services:
     image: request_handler:latest
     ports:
       - 5000:5000
+
+  db:
+    image: postgres:16.1
+    restart: always
+    environment:
+      POSTGRES_USER: request_manager
+      POSTGRES_PASSWORD: db_password
+      POSTGRES_DB: requests_db
+    ports:
+      - "5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data/
+
+volumes:
+  pg_data:
