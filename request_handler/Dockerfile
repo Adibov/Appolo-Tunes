@@ -5,4 +5,4 @@ ADD requirements.txt .
 RUN pip install -r requirements.txt
 ADD . .
 
-CMD ["python", "-m", "flask", "/app/request_handler.py"]
+CMD ["flask", "--app", "main.py", "run", "--host", "0.0.0.0"]
