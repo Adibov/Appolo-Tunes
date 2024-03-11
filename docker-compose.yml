@@ -17,6 +17,8 @@ services:
       - AWS_SECRET_KEY_ID
       - AWS_BUCKET_NAME
       - POSTGRES_PASSWORD
+      - RABBITMQ_USERNAME
+      - RABBITMQ_PASSWORD
     image: request_handler:latest
     ports:
       - 5000:5000
@@ -36,24 +38,23 @@ services:
       - pg_data:/var/lib/postgresql/data/
 
   migrate_db:
-    image: postgres:16.1
     depends_on:
       db:
         condition: service_healthy
-    command:
-      - "bash"
-      - "-c"
-      - "./migrate_db.sh"
+    build:
+      context: migrations
+      cache_from:
+        - migrate_db:latest
+    image: migrate_db:latest
     environment:
       - POSTGRES_PASSWORD
 
   rabbitmq:
     image: rabbitmq:3.13-management
     healthcheck:
-      test: ["CMD", "rabbitmqctl", "wait", "--timeout", "60", "rabbit@localhost"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+      test: rabbitmq-diagnostics -q ping
+      interval: 5s
+      retries: 10
     environment:
       RABBITMQ_DEFAULT_USER: request_manager
       RABBITMQ_DEFAULT_PASS: rabbitmq_password
