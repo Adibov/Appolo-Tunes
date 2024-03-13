@@ -8,6 +8,8 @@ import psycopg2
 import requests
 from pika import PlainCredentials
 
+from request_handler.request_status import RequestStatus
+
 s3_client = boto3.client('s3',
                          region_name='thr',
                          endpoint_url='https://s3.ir-thr-at1.arvanstorage.ir',
@@ -100,8 +102,8 @@ def _get_spotify_id_from_song_name(song_name: str) -> str:
 
 def _update_song_id_in_db(request_id: int, song_id: str):
     cursor = db_conn.cursor()
-    cursor.execute("UPDATE requests SET song_id = %s WHERE id = %s",
-                   (song_id, request_id))
+    cursor.execute("UPDATE requests SET song_id = %s, status = %s WHERE id = %s",
+                   (song_id, RequestStatus.READY.value, request_id))
     db_conn.commit()
     cursor.close()
 
