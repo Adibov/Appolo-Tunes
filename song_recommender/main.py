@@ -7,7 +7,7 @@ from email.mime.text import MIMEText
 import psycopg2
 import requests
 
-from request_handler.request_status import RequestStatus
+from request_status import RequestStatus
 
 db_conn = psycopg2.connect(
     dbname="requests_db",

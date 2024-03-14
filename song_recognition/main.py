@@ -8,7 +8,7 @@ import psycopg2
 import requests
 from pika import PlainCredentials
 
-from request_handler.request_status import RequestStatus
+from request_status import RequestStatus
 
 s3_client = boto3.client('s3',
                          region_name='thr',
