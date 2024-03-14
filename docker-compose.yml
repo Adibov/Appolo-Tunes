@@ -89,7 +89,7 @@ services:
   rabbitmq:
     image: rabbitmq:3.13-management
     healthcheck:
-      test: rabbitmq-diagnostics -q ping
+      test: ["CMD", "rabbitmqctl", "status"]
       interval: 5s
       retries: 10
     environment:
