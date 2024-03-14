@@ -20,9 +20,9 @@ db_conn = psycopg2.connect(
 SPOTIFY_URL = "https://spotify23.p.rapidapi.com/recommendations/"
 
 
-def _get_all_ready_requests() -> list[tuple[str, str]]:
+def _get_all_ready_requests() -> list[tuple[int, str, str]]:
     cursor = db_conn.cursor()
-    cursor.execute("SELECT email, song_id FROM requests WHERE status = %s", (RequestStatus.READY.value,))
+    cursor.execute("SELECT id, email, song_id FROM requests WHERE status = %s", (RequestStatus.READY.value,))
     requests = cursor.fetchall()
     cursor.close()
     return requests
@@ -43,7 +43,7 @@ def _get_spotify_recommended_songs(song_id: str) -> list[str]:
 
 
 def _send_recommendations_to_user(email: str, recommendations: list[str]) -> None:
-    sender = "hesamadibi80@gmail.com"
+    sender = os.getenv("EMAIL_USERNAME")
     recipients = [email]
     password = os.getenv("EMAIL_PASSWORD")
     msg = MIMEText("\n".join(recommendations))
@@ -56,10 +56,18 @@ def _send_recommendations_to_user(email: str, recommendations: list[str]) -> Non
     print("Message sent!")
 
 
+def _change_request_status_to_done(request_id: int) -> None:
+    cursor = db_conn.cursor()
+    cursor.execute("UPDATE requests SET status = %s WHERE id = %s", (RequestStatus.DONE.value, request_id))
+    db_conn.commit()
+    cursor.close()
+
+
 if __name__ == '__main__':
     while True:
         ready_requests = _get_all_ready_requests()
-        for email, song_id in ready_requests:
+        for request_id, email, song_id in ready_requests:
             recommended_songs = _get_spotify_recommended_songs(song_id)
-
+            _send_recommendations_to_user(email, recommended_songs)
+            _change_request_status_to_done(request_id)
         time.sleep(5)

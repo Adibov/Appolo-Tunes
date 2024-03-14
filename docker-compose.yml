@@ -23,6 +23,43 @@ services:
     ports:
       - 5000:5000
 
+  song_recognition:
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate_db:
+        condition: service_completed_successfully
+      rabbitmq:
+        condition: service_healthy
+    build:
+      context: song_recognition
+      cache_from:
+        - song_recognition:latest
+    environment:
+      - AWS_ACCESS_KEY_ID
+      - AWS_SECRET_KEY_ID
+      - AWS_BUCKET_NAME
+      - POSTGRES_PASSWORD
+      - RABBITMQ_USERNAME
+      - RABBITMQ_PASSWORD
+    image: song_recognition:latest
+
+  song_recommender:
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate_db:
+        condition: service_completed_successfully
+    build:
+      context: song_recommender
+      cache_from:
+        - song_recommender:latest
+    environment:
+      - POSTGRES_PASSWORD
+      - EMAIL_USERNAME
+      - EMAIL_PASSWORD
+    image: song_recommender:latest
+
   db:
     image: postgres:16.1
     restart: always
